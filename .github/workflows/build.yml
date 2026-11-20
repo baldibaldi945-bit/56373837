@@ -8,15 +8,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unzip project
-        run: unzip -q PortYouStudio_v1_6.zip && ls
+        run: unzip -q ./*.zip && ls
       - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.7" }
-      - name: Remove ffmpeg (makes the APK work on all CPUs)
+      - name: Prepare build (separate app id, no ffmpeg)
         working-directory: PortYouStudio
         run: |
           sed -i 's/isMinifyEnabled = true/isMinifyEnabled = false/; s/isShrinkResources = true/isShrinkResources = false/; /ffmpeg-kit/d; /abiFilters/d' app/build.gradle.kts
+          sed -i 's/applicationId = "com.portyou.studio"/applicationId = "com.portyou.studio.two"/' app/build.gradle.kts
+          sed -i 's/android:label="PortYou Studio"/android:label="PortYou 2"/' app/src/main/AndroidManifest.xml
           cat > app/src/main/java/com/portyou/studio/convert/AudioMerge.kt <<'EOF'
           package com.portyou.studio.convert
 
@@ -28,13 +30,3 @@ jobs:
                   if (inputs.isEmpty()) return false
                   inputs[0].copyTo(out, overwrite = true)
                   return inputs.size == 1
-              }
-          }
-          EOF
-          grep -n "abiFilters\|ffmpeg" app/build.gradle.kts || echo "clean"
-      - name: Build
-        working-directory: PortYouStudio
-        run: gradle :app:assembleRelease --no-daemon
-      - run: ls -l PortYouStudio/app/build/outputs/apk/release/
-      - uses: actions/upload-artifact@v4
-        with: { name: PortYouStudio-apk, path: PortYouStudio/app/build/outputs/apk/release/*.apk }
