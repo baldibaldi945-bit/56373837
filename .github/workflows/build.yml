@@ -30,3 +30,13 @@ jobs:
                   if (inputs.isEmpty()) return false
                   inputs[0].copyTo(out, overwrite = true)
                   return inputs.size == 1
+              }
+          }
+          EOF
+          grep -n "applicationId\|abiFilters\|ffmpeg" app/build.gradle.kts
+      - name: Build
+        working-directory: PortYouStudio
+        run: gradle :app:assembleRelease --no-daemon
+      - run: ls -l PortYouStudio/app/build/outputs/apk/release/
+      - uses: actions/upload-artifact@v4
+        with: { name: PortYouStudio2-apk, path: PortYouStudio/app/build/outputs/apk/release/*.apk }
